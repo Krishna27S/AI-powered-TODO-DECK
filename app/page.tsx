@@ -13,7 +13,7 @@ import { CalendarIcon, Mic, Plus } from "lucide-react"
 import TaskList from "@/components/task-list"
 import ChatWidget from "@/components/chat-widget"
 import SuggestionPanel from "@/components/suggestion-panel"
-import LoginModal from "@/components/login-modal"
+
 import type { Task } from "@/types/task"
 
 export default function Home() {
@@ -179,9 +179,7 @@ export default function Home() {
         <div className="w-full md:w-2/3">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">AI Task Manager</h1>
-            <Button variant="outline" onClick={() => setShowLoginModal(true)}>
-              Login
-            </Button>
+            
           </div>
 
           <div className="mb-6">
@@ -246,7 +244,9 @@ export default function Home() {
         </div>
       </div>
 
-      {showLoginModal && <LoginModal onClose={() => setShowLoginModal(false)} />}
+      <footer className="mt-6 text-center text-sm text-gray-500">
+        &copy; {new Date().getFullYear()} AI Task Manager. All rights reserved.
+      </footer>
     </main>
   )
 }

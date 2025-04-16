@@ -3,8 +3,8 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'AI TO-DO DECK ',
-  description: 'Created with v0',
-  generator: 'v0.dev',
+  description: 'Created by Krishna',
+  generator: 'K',
 }
 
 export default function RootLayout({

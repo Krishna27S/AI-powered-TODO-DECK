@@ -1,8 +1,6 @@
-"use client"
+'use client'
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,26 +8,62 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { auth, db } from '@/lib/firebase'
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from 'firebase/auth'
+import { doc, setDoc } from 'firebase/firestore'
+import { useRouter } from 'next/navigation'
 
 interface LoginModalProps {
   onClose: () => void
 }
 
 export default function LoginModal({ onClose }: LoginModalProps) {
-  const [activeTab, setActiveTab] = useState("login")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
+  const [activeTab, setActiveTab] = useState('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // This is just a mock UI, so we'll just close the modal
-    onClose()
+    setLoading(true)
+
+    try {
+      if (activeTab === 'login') {
+        await signInWithEmailAndPassword(auth, email, password)
+        router.push('/dashboard')
+      } else {
+        const userCred = await createUserWithEmailAndPassword(auth, email, password)
+        const uid = userCred.user.uid
+
+        // Save user to Firestore
+        await setDoc(doc(db, 'users', uid), {
+          email,
+          name,
+          role: 'user', // default role
+          createdAt: new Date().toISOString(),
+        })
+
+        router.push('/dashboard')
+      }
+
+      onClose()
+    } catch (error: any) {
+      alert(`Error: ${error.message}`)
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -37,7 +71,9 @@ export default function LoginModal({ onClose }: LoginModalProps) {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Account</DialogTitle>
-          <DialogDescription>Sign in to sync your tasks across devices.</DialogDescription>
+          <DialogDescription>
+            Sign in to sync your tasks across devices.
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
@@ -46,6 +82,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
             <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
 
+          {/* Login */}
           <TabsContent value="login">
             <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -70,13 +107,14 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                 />
               </div>
               <DialogFooter>
-                <Button type="submit" className="w-full">
-                  Login
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Logging in...' : 'Login'}
                 </Button>
               </DialogFooter>
             </form>
           </TabsContent>
 
+          {/* Register */}
           <TabsContent value="register">
             <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -111,8 +149,8 @@ export default function LoginModal({ onClose }: LoginModalProps) {
                 />
               </div>
               <DialogFooter>
-                <Button type="submit" className="w-full">
-                  Register
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'Registering...' : 'Register'}
                 </Button>
               </DialogFooter>
             </form>

@@ -48,7 +48,7 @@ export async function getChatHistory(): Promise<ChatMessage[]> {
   if (!auth.currentUser) {
     return [{
       role: 'assistant',
-      content: "hello.",
+      content: "hello",
       timestamp: new Date()
     }];
   }

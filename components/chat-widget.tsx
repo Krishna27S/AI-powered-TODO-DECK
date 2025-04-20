@@ -59,7 +59,7 @@ export default function ChatWidget() {
       } else {
         setMessages([{
           role: 'assistant',
-          content: "Please sign in to use the chat feature.",
+          content: "hello",
           timestamp: new Date()
         }]);
       }

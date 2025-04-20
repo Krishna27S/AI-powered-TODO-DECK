@@ -13,7 +13,10 @@ export async function sendMessage(content: string): Promise<ChatMessage> {
   }
 
   try {
-    const response = await fetch('/api/chat', {
+    // Get the base URL from env for both local and Vercel deployments
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+    const response = await fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -25,18 +28,24 @@ export async function sendMessage(content: string): Promise<ChatMessage> {
 
     const aiResponse = await response.json();
 
-    // Store chat history in Firebase
+    // Handle API errors
+    if (!response.ok) {
+      throw new Error(aiResponse.error || 'Failed to fetch response from AI');
+    }
+
+    // Store both user and assistant messages in Firebase
+    const now = new Date();
     await addDoc(collection(db, 'chats'), {
       userId: auth.currentUser.uid,
       message: content,
       response: aiResponse.content,
-      timestamp: new Date(),
+      timestamp: now,
     });
 
     return {
       role: 'assistant',
       content: aiResponse.content,
-      timestamp: new Date(),
+      timestamp: now,
     };
   } catch (error) {
     console.error('Error in sendMessage:', error);
@@ -54,7 +63,6 @@ export async function getChatHistory(): Promise<ChatMessage[]> {
   }
 
   try {
-    // Create the query with proper indexing
     const chatQuery = query(
       collection(db, 'chats'),
       where('userId', '==', auth.currentUser.uid),
@@ -63,21 +71,20 @@ export async function getChatHistory(): Promise<ChatMessage[]> {
 
     const snapshot = await getDocs(chatQuery);
     const messages: ChatMessage[] = [];
-    
+
     snapshot.docs.forEach(doc => {
       const data = doc.data();
-      // Add user message
+      const timestamp = data.timestamp.toDate();
       messages.push({
         role: 'user',
         content: data.message,
-        timestamp: data.timestamp.toDate(),
+        timestamp
       });
-      // Add assistant response if it exists
       if (data.response) {
         messages.push({
           role: 'assistant',
           content: data.response,
-          timestamp: data.timestamp.toDate(),
+          timestamp
         });
       }
     });

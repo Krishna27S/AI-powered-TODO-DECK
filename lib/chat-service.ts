@@ -7,37 +7,37 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-export async function sendMessage(content: string): Promise<ChatMessage> {
+export async function sendMessageWithHistory(history: ChatMessage[]): Promise<ChatMessage> {
   if (!auth.currentUser) {
     throw new Error('User must be authenticated to send messages');
   }
 
   try {
-    // Get the base URL from env for both local and Vercel deployments
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+    const messages = history.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
 
     const response = await fetch(`${baseUrl}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content }]
-      }),
+      body: JSON.stringify({ messages }),
     });
 
     const aiResponse = await response.json();
 
-    // Handle API errors
     if (!response.ok) {
       throw new Error(aiResponse.error || 'Failed to fetch response from AI');
     }
 
-    // Store both user and assistant messages in Firebase
     const now = new Date();
     await addDoc(collection(db, 'chats'), {
       userId: auth.currentUser.uid,
-      message: content,
+      message: history[history.length - 1].content,
       response: aiResponse.content,
       timestamp: now,
     });
@@ -48,7 +48,7 @@ export async function sendMessage(content: string): Promise<ChatMessage> {
       timestamp: now,
     };
   } catch (error) {
-    console.error('Error in sendMessage:', error);
+    console.error('Error in sendMessageWithHistory:', error);
     throw error;
   }
 }

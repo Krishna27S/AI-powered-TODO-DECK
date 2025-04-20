@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { sendMessage, getChatHistory, type ChatMessage } from '@/lib/chat-service';
+import { sendMessageWithHistory, getChatHistory, type ChatMessage } from '@/lib/chat-service';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, Bot } from "lucide-react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Send, Bot } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { auth } from '@/lib/firebase';
 
 export default function ChatWidget() {
@@ -19,76 +19,40 @@ export default function ChatWidget() {
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load chat history when component mounts
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   useEffect(() => {
-    const loadInitialHistory = async () => {
-      try {
-        const history = await getChatHistory();
-        if (history.length > 0) {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      const loggedIn = !!user;
+      setIsAuthenticated(loggedIn);
+      if (loggedIn) {
+        try {
+          const history = await getChatHistory();
           setMessages(history);
-        } else {
-          // Set welcome message if no history
-          setMessages([{
-            role: 'assistant',
-            content: "Hi there! How can I help you today?",
-            timestamp: new Date()
-          }]);
+        } catch {
+          toast({
+            title: "Error",
+            description: "Failed to load chat history",
+            variant: "destructive",
+          });
         }
-      } catch (error) {
-        console.error('Failed to load chat history:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load chat history",
-          variant: "destructive",
-        });
-      }
-    };
-
-    loadInitialHistory();
-  }, [toast]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setIsAuthenticated(!!user);
-      if (user) {
-        loadChatHistory();
       } else {
         setMessages([{
           role: 'assistant',
-          content: "hello",
+          content: "Hello",
           timestamp: new Date()
         }]);
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [toast]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const loadChatHistory = async () => {
-    try {
-      const history = await getChatHistory();
-      // Ensure timestamps are Date objects
-      const formattedHistory = history.map(msg => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      }));
-      setMessages(formattedHistory);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load chat history",
-        variant: "destructive",
-      });
-    }
-  };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -100,22 +64,13 @@ export default function ChatWidget() {
       timestamp: new Date(),
     };
 
-    // Immediately add user message to state
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
 
     try {
-      const response = await sendMessage(input);
-      
-      // Add assistant message to state
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: response.content,
-        timestamp: new Date(),
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
+      const response = await sendMessageWithHistory([...messages, userMessage]);
+      setMessages(prev => [...prev, response]);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -153,11 +108,7 @@ export default function ChatWidget() {
                       </AvatarFallback>
                     </Avatar>
                   )}
-                  <div
-                    className={`rounded-lg px-3 py-2 text-sm ${
-                      message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
-                    }`}
-                  >
+                  <div className={`rounded-lg px-3 py-2 text-sm ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                     {message.content}
                   </div>
                 </div>
@@ -186,24 +137,15 @@ export default function ChatWidget() {
         </ScrollArea>
       </CardContent>
       <CardFooter className="pt-0">
-        <form 
-          onSubmit={handleSendMessage} 
-          className="flex w-full items-center space-x-2"
-          suppressHydrationWarning
-        >
+        <form onSubmit={handleSendMessage} className="flex w-full items-center space-x-2" suppressHydrationWarning>
           <Input
             placeholder="Type a message..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            autoComplete="off" // Prevents browser autofill
+            autoComplete="off"
           />
-          <Button 
-            type="submit" 
-            size="icon" 
-            disabled={isTyping}
-            aria-label="Send message"
-          >
+          <Button type="submit" size="icon" disabled={isTyping} aria-label="Send message">
             <Send className="h-4 w-4" />
           </Button>
         </form>

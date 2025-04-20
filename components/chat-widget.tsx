@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { auth } from '@/lib/firebase';
 
@@ -104,7 +103,7 @@ export default function ChatWidget() {
                   {message.role === "assistant" && (
                     <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-primary text-primary-foreground">
-                        <Bot className="h-4 w-4" />
+                        <img src="/bot-avatar.png" alt="Bot Avatar" className="h-4 w-4" />
                       </AvatarFallback>
                     </Avatar>
                   )}
@@ -119,7 +118,7 @@ export default function ChatWidget() {
                 <div className="flex items-start gap-2 max-w-[80%]">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-primary text-primary-foreground">
-                      <Bot className="h-4 w-4" />
+                      <img src="/bot-avatar.png" alt="Bot Avatar" className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="rounded-lg px-3 py-2 text-sm bg-muted">
@@ -146,7 +145,7 @@ export default function ChatWidget() {
             autoComplete="off"
           />
           <Button type="submit" size="icon" disabled={isTyping} aria-label="Send message">
-            <Send className="h-4 w-4" />
+            <img src="/send-icon.png" alt="Send" className="h-4 w-4" />
           </Button>
         </form>
       </CardFooter>
